@@ -86,6 +86,13 @@
       transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease;}
     .game-card-wrap:hover{transform:translateY(-10px) scale(1.02);box-shadow:0 28px 52px rgba(0,0,0,.7);}
     .game-card-link{display:block;text-decoration:none;color:inherit;}
+    /* NEW / HOT badges */
+    .badge-new,.badge-hot{position:absolute;top:10px;left:10px;z-index:10;
+      font-size:11px;font-weight:900;letter-spacing:2px;padding:4px 10px;
+      border-radius:100px;line-height:1;pointer-events:none;}
+    .badge-new{background:#FF8C2A;color:#000;box-shadow:0 2px 8px rgba(255,140,42,.55);}
+    .badge-hot{background:#FF3030;color:#fff;box-shadow:0 2px 8px rgba(255,48,48,.55);}
+    .game-cover-wrap{position:relative;display:block;}
     /* Rules Modal */
     #rules-modal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.82);
       align-items:center;justify-content:center;padding:24px;}
@@ -136,6 +143,21 @@
 <section id="games" class="wrap">
   <h2 class="sec-title">遊戲 <em>大廳</em></h2>
   <div class="game-grid">
+    <div class="game-card-wrap">
+      <a href="games/match3.html" class="game-card-link game-cover-wrap">
+        <span class="badge-new">NEW</span>
+        <img src="images/match3-cover.jpg" alt="動物消消樂" class="game-cover">
+      </a>
+      <div class="game-body">
+        <div class="game-name">動物消消樂</div>
+        <div class="game-desc">經典 Match-3 消消樂！交換相鄰動物，三連消除拿分，COMBO 連鎖越高分越多，限時30秒衝高分！</div>
+        <div class="play-count" id="play-count-match3">🎮 載入中...</div>
+        <div class="btn-actions">
+          <a href="games/match3.html" class="btn-go">立刻挑戰 ▶</a>
+          <button class="btn-rules" onclick="showRules('match3')">玩法說明</button>
+        </div>
+      </div>
+    </div>
     <div class="game-card-wrap">
       <a href="games/amhz.html" class="game-card-link">
         <img src="images/mix.png" alt="動物合盒樂" class="game-cover">
@@ -189,6 +211,14 @@
       <div id="leaderboard-bb-empty" class="lb-empty" style="display:none">還沒有高手記錄，快去挑戰吧！🎮</div>
     </div>
   </div>
+    <div class="lb-panel">
+      <div class="lb-panel-title">🐾 動物消消樂</div>
+      <table>
+        <thead><tr><th>名次</th><th>玩家</th><th style="text-align:right">分數</th><th style="text-align:right">日期</th></tr></thead>
+        <tbody id="leaderboard-match3-body"></tbody>
+      </table>
+      <div id="leaderboard-match3-empty" class="lb-empty" style="display:none">還沒有高手記錄，快去挑戰吧！🎮</div>
+    </div>
   <p class="lb-note">📅 排行榜每月 1 日自動重置</p>
 </section>
 </section><!-- /section-lb -->
@@ -238,6 +268,17 @@ const GAMES_CONFIG = {
       ['🏆','最多5回合，難度每回升！'],
       ['✨','連續10全壘打 → 隱藏驚喜！'],
     ]
+  },
+  match3: {
+    name: '動物消消樂',
+    rules: [
+      ['🐾','點擊兩個相鄰動物交換位置，三連以上消除！'],
+      ['⏱️','限時 30 秒，在時間結束前衝刺高分！'],
+      ['💥','COMBO 連鎖：連續消除，倍率越高分越爆！'],
+      ['✨','消除越多格，粒子特效越炫麗！'],
+      ['💡','超過 3 秒不動，系統自動提示可消除位置'],
+      ['🏆','完成後可輸入暱稱，送上全球排行榜！'],
+    ]
   }
 };
 
@@ -248,16 +289,34 @@ function formatCount(n){
   return String(n);
 }
 
-/* ── 讀取全平台遊玩次數（僅載入一次，節省 Firebase 用量） ── */
-let _playCountCache = null;
+/* ── 讀取各遊戲遊玩次數 + HOT badge 邏輯 ── */
 async function loadPlayCount(){
-  try{
-    const r = await fetch(`${FB_URL}/playCount.json`);
-    _playCountCache = (await r.json()) || 0;
-    const label = '🎮 ' + formatCount(_playCountCache) + ' 次遊玩';
-    document.querySelectorAll('[id^="play-count-"]').forEach(el=>{ el.textContent = label; });
-  }catch(e){
-    document.querySelectorAll('[id^="play-count-"]').forEach(el=>{ el.textContent = '🎮 —'; });
+  const games = ['amhz','bb','match3'];
+  const counts = {};
+  await Promise.all(games.map(async g => {
+    try{
+      const r = await fetch(`${FB_URL}/playCount_${g}.json`);
+      counts[g] = (await r.json()) || 0;
+    }catch(e){ counts[g] = 0; }
+  }));
+  // 更新各遊戲次數顯示
+  games.forEach(g => {
+    const el = document.getElementById(`play-count-${g}`);
+    if(el) el.textContent = '🎮 ' + formatCount(counts[g]) + ' 次遊玩';
+  });
+  // HOT badge：遊玩次數最多的遊戲
+  const maxCount = Math.max(...Object.values(counts));
+  if(maxCount > 0){
+    const hotGame = games.find(g => counts[g] === maxCount);
+    // 只對沒有 NEW badge 的遊戲顯示 HOT
+    const hotLink = document.querySelector(`a[href="games/${hotGame}.html"].game-card-link`);
+    if(hotLink && !hotLink.querySelector('.badge-new')){
+      const badge = document.createElement('span');
+      badge.className = 'badge-hot';
+      badge.textContent = 'HOT 🔥';
+      hotLink.style.position = 'relative';
+      hotLink.insertBefore(badge, hotLink.firstChild);
+    }
   }
 }
 
@@ -297,9 +356,11 @@ async function checkMonthlyReset(){
     await Promise.all([
       fetch(`${FB_URL}/lb_amhz.json`,{method:'DELETE'}).catch(()=>{}),
       fetch(`${FB_URL}/lb_bb.json`,{method:'DELETE'}).catch(()=>{}),
+      fetch(`${FB_URL}/lb_match3.json`,{method:'DELETE'}).catch(()=>{}),
     ]);
     localStorage.removeItem('platform_amhz_lb');
     localStorage.removeItem('platform_bb_lb');
+    localStorage.removeItem('platform_match3_lb');
     localStorage.setItem(key,thisMonth);
   }
 }
@@ -335,9 +396,10 @@ function renderLb(data,tbodyId,emptyId){
 }
 
 async function loadAll(){
-  const[amhz,bb]=await Promise.all([fetchFirebaseLb('lb_amhz'),fetchFirebaseLb('lb_bb')]);
+  const[amhz,bb,match3]=await Promise.all([fetchFirebaseLb('lb_amhz'),fetchFirebaseLb('lb_bb'),fetchFirebaseLb('lb_match3')]);
   renderLb(amhz,'leaderboard-amhz-body','leaderboard-amhz-empty');
   renderLb(bb,'leaderboard-bb-body','leaderboard-bb-empty');
+  renderLb(match3,'leaderboard-match3-body','leaderboard-match3-empty');
 }
 
 function switchTab(tab){
