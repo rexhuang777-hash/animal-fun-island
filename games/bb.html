@@ -102,6 +102,19 @@ const PITCHES=[
 /* ━━━ GAME STATE ━━━ */
 let VIEW='nameInput'; // 每次進入都詢問名稱 | title | select | game | nameInput | result
 let selIdx=-1, CUR=null;
+
+/* ── 馬打者雪碧圖 ── */
+const HORSE_BATTER={name:'horse', pw:1.0, sp:1.0, col:'#8B5E3C'};
+const HORSE_SPRITE=new Image();
+HORSE_SPRITE.src='horse.png';
+// 雪碧圖規格：1536×1024，8幀（每幀192px），RGBA透明背景
+// 角色在每幀內的裁切範圍（Python分析結果）
+const HS={
+  totalFrames:8, frameW:192,
+  cropX:13, cropY:501, cropW:179, cropH:223,
+  idleFrames:4,  // frames 0-3
+  swingFrames:4  // frames 4-7
+};
 let score=0, hiScore=parseInt(localStorage.getItem('bb_hi')||0);
 let playerName = localStorage.getItem('platform_player_name') || '';
 let nameInputText = localStorage.getItem('platform_player_name')||'';
@@ -373,71 +386,50 @@ function drawPitcher(ts){
   }
 }
 
-/* ── DRAW BATTER CHARACTER (官方動畫立繪) ── */
+/* ── DRAW BATTER CHARACTER (馬打者雪碧圖) ── */
 function drawBatter(ch, swingPhase, ts){
-  if(!ch) return;
-  const img=CHAR_IMGS[ch.name];
+  // 決定要顯示第幾幀
+  let frameIdx;
+  if(swingPhase>0){
+    // 揮棒幀：frames 4-7，依揮棒進度線性播放
+    const f=swingPhase/0.45; // 1.0(起始)→0.0(完成)
+    frameIdx=4+Math.min(HS.swingFrames-1, Math.floor((1-f)*HS.swingFrames));
+  } else {
+    // 待機幀：frames 0-3，依時間循環（每180ms換幀）
+    frameIdx=Math.floor(ts/180)%HS.idleFrames;
+  }
 
-  // ── 球棒（獨立在打擊區揮動，不與角色位置耦合）──
-  // 支點在右打擊框右側，桶部掃過打擊區
-  const batPX=PLATE.x+52;  // 232 - 右打擊框右緣
-  const batPY=PLATE.y-14;  // 441 - 手部高度
-  // swingPhase 0.45→0：球棒從蓄力右上(1.2rad) → 接觸水平(-1.57) → 跟進左後(-2.0rad)
-  const f=swingPhase/0.45;  // 1.0=起始, 0.0=跟進完成
-  const batAng=swingPhase>0 ? 3.2*f-2.0 : 0.75;  // 183° 完整水平弧線揮棒
-  C.save();
-  C.translate(batPX,batPY);
-  C.rotate(batAng);
-  // 球棒顏色/形狀依回合變化
-  const BAT_STYLES=[
-    // 回合 1: 原木棒（預設）
-    {c0:'#C0763A',c1:'#8B4513',c2:'#5C2E0A',bw:6,bh:52,ew:8,eh:11,grip:'#222'},
-    // 回合 2: 黑色金屬棒
-    {c0:'#888',c1:'#444',c2:'#222',bw:5,bh:55,ew:10,eh:10,grip:'#FF4400'},
-    // 回合 3: 藍色冰棒
-    {c0:'#6CF',c1:'#08F',c2:'#005',bw:6,bh:54,ew:9,eh:13,grip:'#0CF'},
-    // 回合 4: 金色重棒
-    {c0:'#FFD700',c1:'#DAA520',c2:'#8B6914',bw:7,bh:58,ew:11,eh:14,grip:'#880'},
-    // 回合 5: 紅色火焰棒
-    {c0:'#FF2200',c1:'#FF6600',c2:'#8B0000',bw:7,bh:60,ew:12,eh:15,grip:'#FF0'},
-  ];
-  const bs=BAT_STYLES[Math.min(roundNo-1, 4)];
-  const batG=C.createLinearGradient(-2,-72,2,0);
-  batG.addColorStop(0,bs.c0);batG.addColorStop(0.5,bs.c1);batG.addColorStop(1,bs.c2);
-  C.fillStyle=batG;
-  C.fillRect(-Math.floor(bs.bw/2),-72,bs.bw,bs.bh);
-  // 桶部
-  C.beginPath();C.ellipse(0,-74,bs.ew,bs.eh,0,0,Math.PI*2);C.fill();
-  C.strokeStyle='rgba(0,0,0,0.35)';C.lineWidth=1.5;C.stroke();
-  // 握把纏帶
-  C.fillStyle=bs.grip;C.fillRect(-Math.floor(bs.bw/2),-20,bs.bw,14);
-  C.restore();
+  // 雪碧圖裁切來源
+  const sx=frameIdx*HS.frameW + HS.cropX;
+  const sy=HS.cropY;
+  const sw=HS.cropW;
+  const sh=HS.cropH;
 
-  // ── 角色（右側邊緣，完全不擋打擊框）──
-  // charX=318, charY=570：腳部超出畫面底部，只顯示上身
-  const charX=W-42;   // 318 - 畫面右側
-  const charY=H+10;   // 570 - 腳部略超出底部
+  // 目標尺寸（縮放至遊戲高度）
   const tH=148;
+  const scale=tH/sh;
+  const tW=sw*scale;  // ~118px
+
+  // 位置：腳底錨點右側
+  const charX=W-42;   // 318
+  const charY=H+10;   // 570
 
   C.save();
   C.translate(charX,charY);
 
   // 地面陰影
   C.fillStyle='rgba(0,0,0,0.28)';
-  C.beginPath();C.ellipse(-8,-6,26,7,0,0,Math.PI*2);C.fill();
+  C.beginPath();C.ellipse(-8,-6,28,7,0,0,Math.PI*2);C.fill();
 
-  if(img && img.complete && img.naturalWidth>0){
-    const tW=tH*(img.naturalWidth/img.naturalHeight);
-
-    // 解析 ch.col hex → rgba 字串（供漸層使用）
-    // 翻轉面向投手，PNG 已去背直接繪製
+  // 繪製馬雪碧圖（水平翻轉讓角色面向左方/投手）
+  if(HORSE_SPRITE.complete && HORSE_SPRITE.naturalWidth>0){
     C.save();
-    C.scale(-1,1);
-    C.drawImage(img,-tW/2,-tH,tW,tH);
+    C.scale(-1,1);  // 翻轉：面向左（投手方向）
+    C.drawImage(HORSE_SPRITE, sx, sy, sw, sh, -tW/2, -tH, tW, tH);
     C.restore();
   } else {
-    // canvas 替代
-    C.fillStyle=ch.col;
+    // 備援：載入中顯示佔位符
+    C.fillStyle='#8B5E3C';
     C.fillRect(-22,-tH,44,tH);
     C.fillStyle='#F5C89A';
     C.beginPath();C.arc(-5,-tH-14,20,0,Math.PI*2);C.fill();
@@ -1184,7 +1176,7 @@ function endGame(){
 async function incrementPlayCount_BB(){
   try{
     const FB_URL='https://zoo-forest-7132c-default-rtdb.asia-southeast1.firebasedatabase.app';
-    const url=`${FB_URL}/playCount.json`;
+    const url=`${FB_URL}/playCount_bb.json`;
     const r1=await fetch(url);
     const cur=(await r1.json())||0;
     await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cur+1)});
@@ -1354,7 +1346,7 @@ function handleClick(x,y){
       playerName=name.slice(0,8);
       localStorage.setItem('platform_player_name',playerName);
     }
-    sfxSelect();VIEW='select';
+    sfxSelect(); CUR=HORSE_BATTER; startNewGame();
   } else if(VIEW==='select'){
     // Check card clicks
     CHARS.forEach((_,i)=>{
@@ -1374,7 +1366,7 @@ function handleClick(x,y){
     doSwing();
   } else if(VIEW==='result'){
     if(y>H-100&&y<H-45){ // retry btn
-      sfxSelect();VIEW='select';
+      sfxSelect(); startNewGame();
     } else if(y>H-145&&y<H-103){ // share btn
       const pName=localStorage.getItem('platform_player_name')||'玩家';
       const text=`🎮 ${pName} 在《動物轟不讓》拿到 ${score} 分！到達第 ${roundNo} 回合！\n快來挑戰 👉 https://zoo-forest-can.github.io/island/`;
@@ -1390,7 +1382,7 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='Enter'){
     e.preventDefault();
     if(VIEW==='game') doSwing();
-    else if(VIEW==='title'){sfxSelect();VIEW='select';}
+    else if(VIEW==='title'){sfxSelect(); CUR=HORSE_BATTER; startNewGame();}
   }
 });
 
@@ -1399,8 +1391,10 @@ function startNewGame(){
   roundNo=1;roundHomers=0;roundNonStrikes=0;totalPitches=10;usedPitchers=[];
   particleList=[];groundBalls=[];ball=null;swingAnim=0;
   resultAlpha=0;flashFrames=0;hitZoneAlpha=0;showHitZone=false;
-  // 從未被選擇的角色中隨機挑選投手
-  const pool=CHARS.filter((_,i)=>i!==selIdx);
+  // 固定使用馬打者（不再需要選角）
+  CUR=HORSE_BATTER;
+  // 投手從全部角色中隨機挑選
+  const pool=CHARS;
   PITCHER=pool[Math.floor(Math.random()*pool.length)];
   usedPitchers.push(PITCHER.name);
   VIEW='game';
