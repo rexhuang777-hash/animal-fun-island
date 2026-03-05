@@ -189,7 +189,7 @@
       </div>
     </div>
     <!-- 連連看 -->
-    <div class="game-card-wrap" style="display:none">
+    <div class="game-card-wrap">
       <a href="games/llk.html" class="game-card-link game-cover-wrap">
         <img src="images/llk-cover.png" alt="動物連連看" class="game-cover">
       </a>
@@ -235,6 +235,15 @@
       </table>
       <div id="leaderboard-match3-empty" class="lb-empty" style="display:none">還沒有高手記錄，快去挑戰吧！🎮</div>
     </div>
+    <div class="lb-panel">
+      <div class="lb-panel-title">🐱 動物連連看</div>
+      <table>
+        <thead><tr><th>名次</th><th>玩家</th><th style="text-align:right">分數</th><th style="text-align:right">日期</th></tr></thead>
+        <tbody id="leaderboard-llk-body"></tbody>
+      </table>
+      <div id="leaderboard-llk-empty" class="lb-empty" style="display:none">還沒有高手記錄，快去挑戰吧！🎮</div>
+    </div>
+  </div>
   </div>
   <p class="lb-note">📅 排行榜每月 1 日自動重置</p>
 </section>
@@ -443,10 +452,11 @@ function renderLb(data,tbodyId,emptyId){
 }
 
 async function loadAll(){
-  const[amhz,bb,match3]=await Promise.all([fetchFirebaseLb('lb_amhz'),fetchFirebaseLb('lb_bb'),fetchFirebaseLb('lb_match3')]);
+  const[amhz,bb,match3,llk]=await Promise.all([fetchFirebaseLb('lb_amhz'),fetchFirebaseLb('lb_bb'),fetchFirebaseLb('lb_match3'),fetchFirebaseLb('lb_llk')]);
   renderLb(amhz,'leaderboard-amhz-body','leaderboard-amhz-empty');
   renderLb(bb,'leaderboard-bb-body','leaderboard-bb-empty');
   renderLb(match3,'leaderboard-match3-body','leaderboard-match3-empty');
+  renderLb(llk,'leaderboard-llk-body','leaderboard-llk-empty');
 }
 
 function switchTab(tab){

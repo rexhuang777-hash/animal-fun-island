@@ -8,7 +8,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #080c1a;
+            background: linear-gradient(135deg, #0d0a2a 0%, #0a1832 50%, #080c1a 100%);
             font-family: 'Noto Sans TC', sans-serif;
             display: flex;
             justify-content: center;
@@ -27,7 +27,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            background: #080c1a;
+            background: linear-gradient(160deg, #100e30 0%, #0a1428 60%, #080c1a 100%);
             border: 2px solid rgba(255, 140, 42, 0.6);
             box-shadow: 0 0 30px rgba(255, 140, 42, 0.4), inset 0 0 20px rgba(255, 140, 42, 0.05);
             border-radius: 12px;
@@ -77,19 +77,20 @@
             display: flex;
         }
         .g-overlay-content {
-            background: #1a1f3a;
-            border: 2px solid #FF8C2A;
-            border-radius: 15px;
+            background: linear-gradient(135deg, #1e1445 0%, #14102e 60%, #0f0c26 100%);
+            border: 2px solid rgba(255,140,42,0.8);
+            border-radius: 20px;
             padding: 30px;
             text-align: center;
             max-width: 350px;
-            box-shadow: 0 0 30px rgba(255, 140, 42, 0.5);
+            box-shadow: 0 0 40px rgba(255,140,42,0.55), 0 0 80px rgba(255,140,42,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
         }
         .g-overlay-title {
             font-size: 28px;
             color: #FF8C2A;
             margin-bottom: 20px;
             font-weight: 700;
+            text-shadow: 0 0 20px rgba(255, 180, 50, 0.6), 0 2px 4px rgba(0,0,0,0.8);
         }
         .g-overlay-subtitle {
             font-size: 14px;
@@ -119,22 +120,44 @@
             gap: 15px;
             margin-top: 25px;
             justify-content: center;
+            flex-wrap: wrap;
         }
         .g-btn {
             padding: 12px 30px;
-            border: 2px solid #FF8C2A;
-            background: #FF8C2A;
+            border: 2px solid rgba(255,140,42,0.9);
+            background: linear-gradient(135deg, #ffb060 0%, #FF8C2A 100%);
             color: white;
             font-family: inherit;
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
             font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255,140,42,0.4);
         }
         .g-btn:hover {
-            background: #ff9d47;
+            background: linear-gradient(135deg, #ffc080 0%, #FFB347 100%);
+            box-shadow: 0 6px 20px rgba(255,140,42,0.6);
             transform: translateY(-2px);
+        }
+        #shareBtn {
+            background: linear-gradient(135deg, #2196F3 0%, #0d6efd 100%);
+            color: #fff;
+            border: 2px solid rgba(33,150,243,0.9);
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(33,150,243,0.4);
+            transition: all 0.2s;
+            margin-top: 8px;
+            font-family: inherit;
+        }
+        #shareBtn:hover {
+            box-shadow: 0 6px 18px rgba(33,150,243,0.6);
+            transform: translateY(-2px) scale(1.02);
+            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
         }
         .g-leaderboard {
             width: 100%;
@@ -221,6 +244,7 @@
                     </div>
                     <div class="g-btn-group">
                         <button class="g-btn" id="submitBtn">提交排行榜</button>
+                        <button class="g-btn" id="shareBtn">分享成績</button>
                     </div>
                 </div>
             </div>
@@ -273,14 +297,14 @@
             osc.stop(start + duration + 0.05);
         }
 
-        // 蕭邦夜曲 + 賽車風格 背景音樂
-        const NOCTURNE = [
-            [659,0.6],[587,0.3],[523,0.3],[587,0.3],[494,0.6],
-            [523,0.3],[440,0.3],[494,0.3],[392,0.8],
-            [440,0.3],[494,0.3],[523,0.3],[587,0.3],[622,0.6],
-            [587,0.3],[523,0.3],[494,0.3],[440,0.8],
-            [523,0.6],[587,0.3],[622,0.3],[659,0.6],
-            [698,0.3],[659,0.3],[622,0.3],[587,0.8],
+        // 柔和五聲音階旋律（C 大調 C4 八度，輕柔流動）
+        const MELODY = [
+            [330,1.0],[294,0.5],[262,1.0],[294,0.5],
+            [330,0.6],[392,0.5],[440,1.0],[392,0.5],
+            [330,1.0],[294,0.5],[262,1.4],
+            [220,0.7],[247,0.5],[262,1.0],[330,0.5],
+            [392,0.7],[330,0.5],[294,1.0],[262,0.7],
+            [220,1.4],
         ];
 
         let musicTimer = null;
@@ -288,13 +312,13 @@
 
         function scheduleMelody() {
             if (isMuted || !audioCtx) return;
-            const [freq, dur] = NOCTURNE[noteIdx % NOCTURNE.length];
-            playNote(freq, dur * 0.85, 'sine', 0.18);
-            // 低音引擎 drone（賽車感）
-            if (noteIdx % 4 === 0) playNote(55, dur * 1.5, 'sawtooth', 0.04);
-            if (noteIdx % 8 === 0) playNote(82, dur * 0.5, 'sawtooth', 0.03);
+            const [freq, dur] = MELODY[noteIdx % MELODY.length];
+            // 主旋律：柔和 sine，低音量
+            playNote(freq, dur * 1.1, 'sine', 0.13);
+            // 低八度柔和和聲
+            if (noteIdx % 3 === 0) playNote(freq / 2, dur * 1.4, 'sine', 0.05);
             noteIdx++;
-            const next = (NOCTURNE[noteIdx % NOCTURNE.length]?.[1] || 0.4) * 700;
+            const next = (MELODY[noteIdx % MELODY.length]?.[1] || 0.6) * 820;
             musicTimer = setTimeout(scheduleMelody, next);
         }
 
@@ -326,7 +350,7 @@
 
         function sfxLevelClear() {
             if (isMuted) return;
-            [523,659,784,1047].forEach((f,i) => playNote(f, 0.3, 'sine', 0.28, i*0.12));
+            [392,523,659,784].forEach((f,i) => playNote(f, 0.35, 'sine', 0.22, i*0.13));
         }
 
         function sfxHint() {
@@ -350,22 +374,22 @@
         const FB_PATH = 'lb_llk';
         
         const TILE_PALETTE = [
-            ['#FF6B6B','#ff8585'], // 0 紅
-            ['#4ECDC4','#6ee3db'], // 1 青
-            ['#FFE66D','#fff09e'], // 2 黃
-            ['#95E1D3','#b5f1e8'], // 3 薄荷
-            ['#C7CEEA','#dde2ff'], // 4 薰衣草
-            ['#FF9A9E','#ffb3b6'], // 5 粉
-            ['#A8D8EA','#c3eaf8'], // 6 水藍
-            ['#AA96DA','#c0aff0'], // 7 紫
-            ['#FCBAD3','#ffd4e8'], // 8 玫瑰
-            ['#A1D82F','#c1f03f'], // 9 萊姆
-            ['#FFD93D','#ffe870'], // 10 金
-            ['#6BCB77','#8de895'], // 11 綠
-            ['#4D96FF','#70aeff'], // 12 藍
-            ['#FF6B9D','#ff8ab5'], // 13 洋紅
-            ['#FFA502','#ffbe4d'], // 14 橘
-            ['#FF6348','#ff8070'], // 15 橘紅
+            ['#FF6B6B','#FF9090'],  // 0 紅
+            ['#26C6C0','#4EE8E2'],  // 1 青綠（更飽和）
+            ['#FFD93D','#FFE870'],  // 2 黃
+            ['#74DDB8','#96EDD0'],  // 3 薄荷綠（更鮮）
+            ['#B388E8','#CCA8FF'],  // 4 薰衣草（更深）
+            ['#FF8FAB','#FFB3C6'],  // 5 粉（更飽和）
+            ['#64B5F6','#90CAF9'],  // 6 水藍（更鮮）
+            ['#9575CD','#B39DDB'],  // 7 深紫
+            ['#F48FB1','#F8BBD9'],  // 8 玫瑰
+            ['#8BC34A','#AED581'],  // 9 草綠
+            ['#FFB300','#FFD740'],  // 10 金（更深）
+            ['#4CAF50','#81C784'],  // 11 綠
+            ['#2979FF','#5C9CFF'],  // 12 藍（更鮮）
+            ['#E91E8C','#F06DAD'],  // 13 洋紅（更深）
+            ['#FF7043','#FF9A80'],  // 14 橘（更飽和）
+            ['#FF5722','#FF8A65'],  // 15 橘紅
         ];
 
         const TILE_EMOJIS = ['🐱','🐶','🐰','🐸','🦊','🐻','🐼','🐨','🦁','🐯',
@@ -375,11 +399,11 @@
             '🦌','🦨','🦡','🐿️','🦔','🦭','🐩','🦙'];
 
         const LEVELS = [
-            { type: 'llk', cols: 8, rows: 6, time: 70, pairs: 24, name: 'L1' },
-            { type: 'stack', cols: 4, rows: 8, time: 60, colors: 3, name: 'L2' },
-            { type: 'llk', cols: 10, rows: 8, time: 55, pairs: 40, name: 'L3' },
-            { type: 'stack', cols: 5, rows: 8, time: 60, colors: 4, name: 'L4' },
-            { type: 'llk', cols: 12, rows: 8, time: 40, pairs: 48, name: 'L5' }
+            { type: 'llk', cols: 8,  rows: 6, time: 70, pairs: 24, name: 'L1' },
+            { type: 'llk', cols: 8,  rows: 6, time: 60, pairs: 24, name: 'L2' },
+            { type: 'llk', cols: 10, rows: 6, time: 55, pairs: 30, name: 'L3' },
+            { type: 'llk', cols: 10, rows: 8, time: 50, pairs: 40, name: 'L4' },
+            { type: 'llk', cols: 12, rows: 8, time: 45, pairs: 48, name: 'L5' },
         ];
 
         const STACK_COLORS = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6'];
@@ -394,8 +418,8 @@
             levelData: null,
             selected: null,
             path: [],
-            hint: { available: 99, pair: null },
-            shuffle: { available: 99 },
+            hint: { available: 2, pair: null },
+            shuffle: { available: 2 },
             particles: [],
             animatingPath: false,
             noLinkMsg: null,
@@ -602,35 +626,56 @@
             }
         }
 
-        function createParticles(x, y, count = 16) {
-            for (let i = 0; i < count; i++) {
-                const angle = (Math.PI * 2 * i) / count;
-                const speed = 4 + Math.random() * 4;
+        function createParticles(x, y, count, style) {
+            count = count || 12;
+            style = style || 'match';
+            var colors, speed, gravity, lifespan;
+            if (style === 'match') {
+                colors = ['rgba(255,200,80,{a})','rgba(255,140,42,{a})','rgba(180,255,120,{a})','rgba(255,100,180,{a})'];
+                speed = 10 + Math.random() * 6;
+                gravity = 0.5;
+                lifespan = 0.042;
+            } else {
+                colors = ['rgba(255,80,80,{a})','rgba(220,60,60,{a})'];
+                speed = 7 + Math.random() * 4;
+                gravity = 0.7;
+                lifespan = 0.055;
+            }
+            for (var i = 0; i < count; i++) {
+                var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+                var sp = speed * (0.7 + Math.random() * 0.6);
                 gameState.particles.push({
-                    x, y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
+                    x: x, y: y,
+                    vx: Math.cos(angle) * sp,
+                    vy: Math.sin(angle) * sp - 1,
                     life: 1.0,
-                    size: 3 + Math.random() * 3
+                    decay: lifespan,
+                    gravity: gravity,
+                    size: 2 + Math.random() * 3,
+                    color: colors[Math.floor(Math.random() * colors.length)]
                 });
             }
         }
 
         function updateParticles(dt) {
-            gameState.particles = gameState.particles.filter(p => {
+            gameState.particles = gameState.particles.filter(function(p) {
                 p.x += p.vx * dt;
                 p.y += p.vy * dt;
-                p.vy += 0.3 * dt;
-                p.life -= 0.025 * dt;
+                p.vx *= 0.94;
+                p.vy += p.gravity * dt;
+                p.life -= p.decay * dt;
                 return p.life > 0;
             });
         }
 
         function drawParticles() {
-            for (const p of gameState.particles) {
-                CTX.fillStyle = `rgba(255, 140, 42, ${p.life})`;
+            for (var i = 0; i < gameState.particles.length; i++) {
+                var p = gameState.particles[i];
+                var a = p.life < 0.4 ? p.life / 0.4 : 1;
+                var col = p.color.replace('{a}', (a * 0.9).toFixed(2));
+                CTX.fillStyle = col;
                 CTX.beginPath();
-                CTX.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                CTX.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                 CTX.fill();
             }
         }
@@ -643,8 +688,9 @@
             gameState.time = level.time;
             gameState.selected = null;
             gameState.path = [];
-            gameState.hint = { available: 99, pair: null };
-            gameState.shuffle = { available: 99 };
+            gameState.hint.pair = null;       // 清除上一關的 hint 標記，但保留剩餘次數
+            gameState.hint.showTime = null;
+            // hint.available 與 shuffle.available 過關不補充
             gameState.particles = [];
             gameState.animatingPath = false;
 
@@ -690,10 +736,12 @@
             if (gameState.animatingPath) return;
 
             const level = LEVELS[gameState.currentLevel];
-            const tileWidth = CANVAS.width / level.cols;
-            const tileHeight = (CANVAS.height - 60) / level.rows;
-            const col = Math.floor(x / tileWidth);
-            const row = Math.floor(y / tileHeight);
+            const tileSize = Math.min(Math.floor(CANVAS.width / level.cols), Math.floor((CANVAS.height - 60) / level.rows));
+            const tileWidth = tileSize, tileHeight = tileSize;
+            const offsetX = Math.round((CANVAS.width - tileSize * level.cols) / 2);
+            const offsetY = Math.round(((CANVAS.height - 60) - tileSize * level.rows) / 2);
+            const col = Math.floor((x - offsetX) / tileSize);
+            const row = Math.floor((y - offsetY) / tileSize);
 
             if (row < 0 || row >= level.rows || col < 0 || col >= level.cols) return;
             if (gameState.levelData.board[row][col].removed) return;
@@ -718,8 +766,8 @@
                     gameState.animatingPath = true;
                     gameState.levelData.removePair(sr, sc, row, col);
 
-                    const tileX = col * tileWidth + tileWidth / 2;
-                    const tileY = row * tileHeight + tileHeight / 2;
+                    const tileX = offsetX + col * tileSize + tileSize / 2;
+                    const tileY = offsetY + row * tileSize + tileSize / 2;
                     createParticles(tileX, tileY, 8);
                     sfxMatch();
 
@@ -736,7 +784,7 @@
                             gameState.state = 'lvlclear';
                             sfxLevelClear();
                         }
-                    }, 400);
+                    }, 280);
                     setTimeout(() => { checkDeadlock(); }, 420);
                 } else {
                     // 連線失敗：保留原選取格（不切換），僅在 console 輸出除錯資訊
@@ -871,16 +919,18 @@
 
         function drawLLK() {
             const level = LEVELS[gameState.currentLevel];
-            const tileWidth = CANVAS.width / level.cols;
-            const tileHeight = (CANVAS.height - 60) / level.rows;
+            const tileSize = Math.min(Math.floor(CANVAS.width / level.cols), Math.floor((CANVAS.height - 60) / level.rows));
+            const tileWidth = tileSize, tileHeight = tileSize;
+            const offsetX = Math.round((CANVAS.width - tileSize * level.cols) / 2);
+            const offsetY = Math.round(((CANVAS.height - 60) - tileSize * level.rows) / 2);
 
             for (let r = 0; r < level.rows; r++) {
                 for (let c = 0; c < level.cols; c++) {
                     const tile = gameState.levelData.board[r][c];
                     if (tile.removed) continue;
 
-                    const x = c * tileWidth;
-                    const y = r * tileHeight;
+                    const x = offsetX + c * tileSize;
+                    const y = offsetY + r * tileSize;
                     const isSelected = gameState.selected && gameState.selected[0] === r && gameState.selected[1] === c;
 
                     const pad = 5;
@@ -892,9 +942,10 @@
                     const [baseColor, lightColor] = TILE_PALETTE[pIdx];
 
                     // 漸層背景
-                    const grad = CTX.createLinearGradient(tx, ty, tx, ty + th);
-                    grad.addColorStop(0, lightColor + 'cc');
-                    grad.addColorStop(1, baseColor + 'aa');
+                    const grad = CTX.createLinearGradient(tx, ty, tx + tw * 0.6, ty + th);
+                    grad.addColorStop(0, lightColor + 'dd');
+                    grad.addColorStop(0.4, baseColor);
+                    grad.addColorStop(1, baseColor + '99');
                     CTX.fillStyle = grad;
                     CTX.beginPath();
                     CTX.roundRect(tx, ty, tw, th, radius);
@@ -918,7 +969,7 @@
 
                     // Emoji
                     CTX.fillStyle = '#fff';
-                    const emojiSize = Math.min(tileWidth, tileHeight) * 0.62;
+                    const emojiSize = tileSize * 0.62;
                     CTX.font = `${emojiSize}px Arial`;
                     CTX.textAlign = 'center';
                     CTX.textBaseline = 'middle';
@@ -942,16 +993,16 @@
                 // 路徑座標轉換：虛擬邊框點（col<0 / col>=COLS / row<0 / row>=ROWS）
                 // 夾在畫面邊緣 3px 內，讓弧形路線完整可見而不被剪裁
                 const PAD = 3;
-                const pw = CANVAS.width, ph = level.rows * tileHeight;
+                const pw = offsetX + level.cols * tileSize, ph = offsetY + level.rows * tileSize;
                 const px = (c) => {
                     if (c < 0) return PAD;
                     if (c >= level.cols) return pw - PAD;
-                    return c * tileWidth + tileWidth / 2;
+                    return offsetX + c * tileSize + tileSize / 2;
                 };
                 const py = (r) => {
                     if (r < 0) return PAD;
                     if (r >= level.rows) return ph - PAD;
-                    return r * tileHeight + tileHeight / 2;
+                    return offsetY + r * tileSize + tileSize / 2;
                 };
 
                 CTX.setLineDash([]);
@@ -967,6 +1018,10 @@
                     CTX.lineTo(px(gameState.path[i][1]), py(gameState.path[i][0]));
                 }
                 CTX.stroke();
+                CTX.shadowColor = 'rgba(255, 200, 0, 0.8)';
+                CTX.shadowBlur = 8;
+                CTX.stroke();
+                CTX.shadowBlur = 0;
                 // 內層白色細線
                 CTX.strokeStyle = 'rgba(255, 255, 255, 0.95)';
                 CTX.lineWidth = 2;
@@ -986,9 +1041,9 @@
                 CTX.strokeStyle = `rgba(255, 60, 60, ${alpha})`;
                 CTX.lineWidth = 4;
                 for (const [fr, fc] of gameState.failFlash.cells) {
-                    const fx = fc * tileWidth;
-                    const fy = fr * tileHeight;
-                    CTX.strokeRect(fx + 2, fy + 2, tileWidth - 4, tileHeight - 4);
+                    const fx = offsetX + fc * tileSize;
+                    const fy = offsetY + fr * tileSize;
+                    CTX.strokeRect(fx + 2, fy + 2, tileSize - 4, tileSize - 4);
                 }
             } else if (gameState.failFlash && Date.now() - gameState.failFlash.time >= 500) {
                 gameState.failFlash = null;
@@ -997,11 +1052,11 @@
             if (gameState.hint.pair && gameState.hint.showTime && Date.now() - gameState.hint.showTime < 3000) {
                 const {r1, c1, r2, c2} = gameState.hint.pair;
                 for (const [r, c] of [[r1, c1], [r2, c2]]) {
-                    const x = c * tileWidth;
-                    const y = r * tileHeight;
+                    const x = offsetX + c * tileSize;
+                    const y = offsetY + r * tileSize;
                     CTX.strokeStyle = '#FFD700';
                     CTX.lineWidth = 3;
-                    CTX.strokeRect(x + 4, y + 4, tileWidth - 8, tileHeight - 8);
+                    CTX.strokeRect(x + 4, y + 4, tileSize - 8, tileSize - 8);
                 }
             } else {
                 gameState.hint.pair = null;
@@ -1069,11 +1124,14 @@
 
         function drawUI() {
             const y = CANVAS.height - 50;
-            // 半透明深色底欄
-            CTX.fillStyle = 'rgba(8, 12, 26, 0.92)';
+            // 半透明深色底欄 with 漸層
+            const hudGrad = CTX.createLinearGradient(0, y, 0, y + 50);
+            hudGrad.addColorStop(0, 'rgba(20, 15, 45, 0.85)');
+            hudGrad.addColorStop(1, 'rgba(8, 10, 25, 0.98)');
+            CTX.fillStyle = hudGrad;
             CTX.fillRect(0, y, CANVAS.width, 50);
             // 上邊分隔線
-            CTX.strokeStyle = 'rgba(255, 140, 42, 0.4)';
+            CTX.strokeStyle = 'rgba(255, 180, 60, 0.6)';
             CTX.lineWidth = 1;
             CTX.beginPath();
             CTX.moveTo(0, y); CTX.lineTo(CANVAS.width, y);
@@ -1081,7 +1139,7 @@
 
             const midX = CANVAS.width / 2;
 
-            // 左側：分數 + 時間
+            // 左區：分數 (x=8, 左對齐)
             CTX.textAlign = 'left';
             CTX.fillStyle = '#FF8C2A';
             CTX.font = 'bold 13px Noto Sans TC';
@@ -1090,15 +1148,7 @@
             CTX.font = 'bold 15px Noto Sans TC';
             CTX.fillText(`${gameState.score}`, 8, y + 36);
 
-            CTX.textAlign = 'center';
-            CTX.fillStyle = '#FF8C2A';
-            CTX.font = 'bold 13px Noto Sans TC';
-            CTX.fillText(`時間`, 55, y + 16);
-            CTX.fillStyle = gameState.time <= 10 ? '#FF4444' : '#fff';
-            CTX.font = 'bold 15px Noto Sans TC';
-            CTX.fillText(`${Math.ceil(gameState.time)}s`, 55, y + 36);
-
-            // COMBO 顯示
+            // 中區：COMBO (x=midX, 置中)
             if (gameState.combo > 1) {
                 CTX.textAlign = 'center';
                 const comboAlpha = Math.min(1, (Date.now() - gameState.lastComboTime) < 1500 ? 1 : 0);
@@ -1108,6 +1158,15 @@
                 CTX.fillText(`COMBO ×${gameState.combo}!`, midX, y + 16);
                 CTX.globalAlpha = 1;
             }
+
+            // 右區：時間 (x=412, 右對齐)
+            CTX.textAlign = 'right';
+            CTX.fillStyle = '#FF8C2A';
+            CTX.font = 'bold 13px Noto Sans TC';
+            CTX.fillText(`時間`, 412, y + 16);
+            CTX.fillStyle = gameState.time <= 10 ? '#FF4444' : '#fff';
+            CTX.font = 'bold 15px Noto Sans TC';
+            CTX.fillText(`${Math.ceil(gameState.time)}s`, 412, y + 36);
 
             const level = LEVELS[gameState.currentLevel];
             if (level.type === 'llk') {
@@ -1154,10 +1213,11 @@
         }
 
         function drawTitle() {
-            // 深色漸層背景
-            const bg = CTX.createRadialGradient(CANVAS.width/2, CANVAS.height/2, 50, CANVAS.width/2, CANVAS.height/2, 350);
-            bg.addColorStop(0, '#151c3a');
-            bg.addColorStop(1, '#080c1a');
+            // 深色漸層背景 (增強)
+            const bg = CTX.createRadialGradient(CANVAS.width/2, CANVAS.height/2, 30, CANVAS.width/2, CANVAS.height/2, 400);
+            bg.addColorStop(0, '#1e1560');
+            bg.addColorStop(0.5, '#0f0d30');
+            bg.addColorStop(1, '#060818');
             CTX.fillStyle = bg;
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
@@ -1355,6 +1415,7 @@
             const video = document.getElementById('clearVideo');
             overlay.style.display = 'flex';
             video.currentTime = 0;
+            video.muted = isMuted;
             video.play().catch(() => {});
             const handler = () => {
                 overlay.style.display = 'none';
@@ -1501,6 +1562,17 @@ function showNameOverlay() {
             }
         });
 
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const name = document.getElementById('playerNameInput').value.trim() || '匿名玩家';
+            const score = gameState.score;
+            const shareText = `🎯 ${name} 在動物連連看拿到 ${score} 分！\n🏆 來路否羅挑戰我吧！\nhttps://zoo-forest-can.github.io/island/`;
+            if (navigator.share) {
+                navigator.share({ title: '動物連連看', text: shareText }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => alert('成績已複製！')).catch(() => alert(shareText));
+            }
+        });
+
         document.getElementById('restartBtn').addEventListener('click', () => {
             hideOverlay();
             gameState.state = 'title';
@@ -1522,6 +1594,8 @@ function showNameOverlay() {
             document.getElementById('mute-btn').addEventListener('click', () => {
             isMuted = !isMuted;
             document.getElementById('mute-btn').textContent = isMuted ? '🔇' : '🔊';
+            const video = document.getElementById('clearVideo');
+            if (video) video.muted = isMuted;
             if (isMuted) {
                 stopMusic();
             } else {
