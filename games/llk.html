@@ -260,7 +260,7 @@
                 </div>
             </div>
             <div id="videoOverlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:200;align-items:center;justify-content:center;flex-direction:column;">
-                <video id="clearVideo" src="foxy.mp4" style="width:100%;height:100%;object-fit:cover;" playsinline muted></video>
+                <video id="clearVideo" preload="auto" src="foxy.mp4" style="width:100%;height:100%;object-fit:cover;" playsinline muted></video>
             </div>
         </div>
     </div>
@@ -374,6 +374,15 @@
         const CTX = CANVAS.getContext('2d');
         const FB_URL = 'https://zoo-forest-7132c-default-rtdb.asia-southeast1.firebasedatabase.app';
         const FB_PATH = 'lb_llk';
+
+        async function incrementPlayCount_LLK(){
+            try{
+                const url = FB_URL + '/playCount_llk.json';
+                const r = await fetch(url);
+                const n = (await r.json()) || 0;
+                await fetch(url, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(n+1)});
+            }catch(e){}
+        }
         
         const TILE_PALETTE = [
             ['#FF6B6B','#FF9090'],  // 0 紅
@@ -773,7 +782,7 @@
 
                     const tileX = offsetX + col * tileSize + tileSize / 2;
                     const tileY = offsetY + row * tileSize + tileSize / 2;
-                    createParticles(tileX, tileY, 8);
+                    // createParticles(tileX, tileY, 8); // 移除綻放特效
                     sfxMatch();
 
                     gameState.combo++;
@@ -834,7 +843,7 @@
             removed.forEach(([r, c]) => {
                 const tileX = c * tileWidth + tileWidth / 2;
                 const tileY = r * tileHeight + tileHeight / 2;
-                createParticles(tileX, tileY, 4);
+                // createParticles(tileX, tileY, 4); // 移除綻放特效
             });
 
             gameState.combo++;
@@ -1086,7 +1095,7 @@
                 CTX.fillStyle = '#fff';
                 CTX.font = 'bold 18px Noto Sans TC';
                 CTX.textAlign = 'center';
-                CTX.fillText('🔄 重新刷新中', CANVAS.width / 2, msgY + 32);
+                CTX.fillText('🌟 太厲害了！方塊再生成', CANVAS.width / 2, msgY + 32);
                 CTX.restore();
             } else if (gameState.noLinkMsg && Date.now() - gameState.noLinkMsg >= 2200) {
                 gameState.noLinkMsg = null;
@@ -1453,6 +1462,7 @@
                     gameState.time = 0;
                     gameState.state = 'gameover';  // 時間到直接進入 gameover
                     // 直接進入排行榜，不顯示分數畫面
+                    incrementPlayCount_LLK();
                     namePhase = "postgame";
                     showNameOverlay();
                 }
@@ -1476,6 +1486,7 @@
                         initLevel(gameState.currentLevel + 1);
                     } else {
                         gameState.state = 'allclear';
+                        incrementPlayCount_LLK();
                         showNameOverlay();
                     }
                 });
@@ -1488,26 +1499,47 @@
 
                 let levelClearPending = false;
         function showClearVideo(onEnd) {
-            const overlay = document.getElementById('videoOverlay');
-            const video = document.getElementById('clearVideo');
-            overlay.style.display = 'flex';
-            video.currentTime = 0;
-            video.muted = true;  // 確保 autoplay 不被瀏覽器阻擋
-            video.play().catch(() => { onEnd(); });
-            const handler = () => {
+            var overlay = document.getElementById('videoOverlay');
+            var video = document.getElementById('clearVideo');
+            var called = false;
+            function safeOnEnd() {
+                if (called) return;
+                called = true;
                 overlay.style.display = 'none';
-                video.removeEventListener('ended', handler);
+                video.pause();
+                video.currentTime = 0;
                 onEnd();
-            };
-            video.addEventListener('ended', handler);
-            // 最多 10 秒後強制結束
-            setTimeout(() => {
-                if (overlay.style.display !== 'none') {
-                    overlay.style.display = 'none';
-                    video.removeEventListener('ended', handler);
-                    onEnd();
-                }
-            }, 10000);
+            }
+            overlay.style.display = 'flex';
+
+            var timeout = setTimeout(function() {
+                safeOnEnd();
+            }, 8000);
+
+            video.addEventListener('ended', function handler() {
+                clearTimeout(timeout);
+                video.removeEventListener('ended', handler);
+                safeOnEnd();
+            }, { once: true });
+
+            // 影片載入失敗（404 或格式不支援）→ 立即跳過，不等 8 秒
+            video.addEventListener('error', function errHandler() {
+                video.removeEventListener('error', errHandler);
+                clearTimeout(timeout);
+                safeOnEnd();
+            }, { once: true });
+
+            // 等 canplay 確認資料已備妥後再播
+            video.addEventListener('canplay', function playHandler() {
+                video.removeEventListener('canplay', playHandler);
+                video.play().catch(function() {
+                    clearTimeout(timeout);
+                    safeOnEnd();
+                });
+            }, { once: true });
+
+            video.currentTime = 0;
+            video.load();
         }
 
 function showNameOverlay() {
