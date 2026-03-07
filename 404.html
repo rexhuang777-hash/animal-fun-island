@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+      <meta charset="UTF-8">
+      <title>路否羅 — 轉跳中</title>
+    <script>
+          // 404 頁面：將所有子路徑轉跳到 Cloudflare Workers
+          // ⚠️ 此檔案僅存在於 gh-pages 分支，請勿修改
+          var targetBase = 'https://island.rexhuang-777.workers.dev';
+          var path = window.location.pathname.replace('/island', '');
+          var newUrl = targetBase + path + window.location.search + window.location.hash;
+          window.location.replace(newUrl);
+    </script>
+  </head>
+  <body>
+      <p>正在轉跳至 <a href="https://island.rexhuang-777.workers.dev/">路否羅遊戲平台</a>a>...</p>
+  </body>
+</html>html></p>
+  </body>
+    </script></title>
+  </head>
